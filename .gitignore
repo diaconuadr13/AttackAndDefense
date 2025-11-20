@@ -1,0 +1,18 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Dataset (Too large for standard Git)
+data/
+
+# Model weights (Optional: exclude if files are >100MB)
+# models/*.pth
+
+# OS generated files
+.DS_Store
+Thumbs.db
