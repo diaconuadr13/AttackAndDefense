@@ -80,7 +80,7 @@ def evaluate_defenses(num_samples=50):
     # Load Robust Model
     robust = SimpleAudioCNN(n_classes=35).to(device)
     try:
-        robust.load_state_dict(torch.load("models/robust_model_2.pth"))
+        robust.load_state_dict(torch.load("models/robust_model_3_epoch_7.pth"))
         robust.eval()
         print("Robust model loaded.")
     except:
@@ -99,4 +99,4 @@ def evaluate_defenses(num_samples=50):
     run_defense_eval("C&W", cw_l2_attack, baseline, robust, loader, device, num_samples, squeezer)
 
 if __name__ == "__main__":
-    evaluate_defenses(num_samples=50)
+    evaluate_defenses(num_samples=200)

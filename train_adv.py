@@ -19,13 +19,22 @@ def train_adv_epoch(model, loader, optimizer, criterion, device, epoch):
     for data, target in pbar:
         data, target = data.to(device), target.to(device)
         
-        # We only attack the first 4 samples of the batch to keep training speed reasonable.
-        num_to_attack = min(4, data.size(0)) 
+        # Dynamic attack strategy: Start small (8) and ramp up to (32)
+        # This balances training speed early on with robustness later
+        base_attack_num = 8
+        max_attack_num = 32
+        current_attack_num = min(max_attack_num, base_attack_num + (epoch - 1) * 4)
+        
+        num_to_attack = min(current_attack_num, data.size(0))
+        
+        # Randomly sample indices from the batch
+        attack_indices = random.sample(range(data.size(0)), num_to_attack)
+        
         adv_samples = []
         adv_targets = []
 
         model.eval() 
-        for i in range(num_to_attack):
+        for i in attack_indices:
             clean_sample = data[i].unsqueeze(0)
             target_label = target[i].unsqueeze(0)
             
@@ -88,6 +97,6 @@ if __name__ == "__main__":
         loss, acc = train_adv_epoch(model, train_loader, optimizer, criterion, device, epoch)
         print(f"Epoch {epoch}: Loss {loss:.4f}")
 
-    # Save the robust model
-    torch.save(model.state_dict(), "models/robust_model_2.pth")
-    print("Robust model saved.")
+        # Save the robust model
+        torch.save(model.state_dict(), f"models/robust_model_3_epoch_{epoch}.pth")
+        print("Robust model saved.")

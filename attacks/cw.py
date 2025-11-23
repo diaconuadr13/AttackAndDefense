@@ -1,7 +1,7 @@
 import torch
 import torch.optim as optim
 
-def cw_l2_attack(model, x, labels, device, target_class=None, c=1, kappa=0, max_iter=100, learning_rate=0.01, binary_search_steps=5):
+def cw_l2_attack(model, x, labels, device, target_class=None, c=1, kappa=0, max_iter=1000, learning_rate=0.01, binary_search_steps=5):
     """
     Carlini & Wagner L2 Attack (Untargeted) with Binary Search.
     Optimizes: min ||delta||^2 + c * f(x + delta)
