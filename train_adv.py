@@ -6,6 +6,8 @@ from tqdm import tqdm
 from utils import SubsetSC, collate_fn
 from models.simple_cnn import SimpleAudioCNN
 from attacks.deepfool import deepfool
+from attacks.cw import cw_l2_attack
+import random
 
 def train_adv_epoch(model, loader, optimizer, criterion, device, epoch):
     model.train()
@@ -17,9 +19,8 @@ def train_adv_epoch(model, loader, optimizer, criterion, device, epoch):
     for data, target in pbar:
         data, target = data.to(device), target.to(device)
         
-        # --- 1. Generate Adversarial Examples (On-the-fly) ---
-        # DeepFool is slow, so we only attack the first 4 samples of the batch
-        # to keep training speed reasonable for this project.
+        # Generate Adversarial Examples
+        # We only attack the first 4 samples of the batch to keep training speed reasonable.
         num_to_attack = min(4, data.size(0)) 
         adv_samples = []
         adv_targets = []
@@ -32,17 +33,24 @@ def train_adv_epoch(model, loader, optimizer, criterion, device, epoch):
             target_label = target[i].unsqueeze(0)
             
             try:
-                # Run DeepFool
-                adv_sample, _, _ = deepfool(model, clean_sample, device, max_iter=10)
+                # Randomly choose between DeepFool and C&W
+                if random.random() < 0.5:
+                    # Run DeepFool
+                    adv_sample, _, _ = deepfool(model, clean_sample, device, max_iter=10)
+                else:
+                    # Run C&W (lighter version for training speed)
+                    adv_sample = cw_l2_attack(model, clean_sample, target_label, device, 
+                                            c=1, max_iter=50, binary_search_steps=1)
+                
                 adv_samples.append(adv_sample)
                 adv_targets.append(target_label)
             except Exception:
                 # If attack fails, skip
                 pass
         
-        model.train() # Switch back to train mode
+        model.train()
         
-        # --- 2. Combine Data ---
+        # Combine Data
         if adv_samples:
             adv_batch = torch.cat(adv_samples, dim=0)
             adv_tgts = torch.cat(adv_targets, dim=0)
@@ -54,7 +62,7 @@ def train_adv_epoch(model, loader, optimizer, criterion, device, epoch):
             combined_data = data
             combined_target = target
 
-        # --- 3. Standard Training Step ---
+        
         optimizer.zero_grad()
         output = model(combined_data)
         loss = criterion(output, combined_target)
@@ -82,7 +90,7 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load("models/baseline_model.pth"))
     print("Loaded baseline model. Starting Adversarial Fine-tuning...")
 
-    optimizer = optim.Adam(model.parameters(), lr=0.0001) # Lower learning rate for fine-tuning
+    optimizer = optim.Adam(model.parameters(), lr=0.0001)
     criterion = nn.CrossEntropyLoss()
 
     # Fine-tune for a few epochs (e.g., 3-5)

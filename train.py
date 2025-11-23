@@ -3,7 +3,7 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from tqdm import tqdm  # Import tqdm for progress bars
+from tqdm import tqdm
 from utils import SubsetSC, collate_fn
 from models.simple_cnn import SimpleAudioCNN
 
@@ -56,7 +56,6 @@ if __name__ == "__main__":
     train_set = SubsetSC("training")
     test_set = SubsetSC("testing")
     
-    # num_workers=0 is safer on Windows to avoid multiprocessing errors with audio
     train_loader = DataLoader(train_set, batch_size=64, shuffle=True, collate_fn=collate_fn, num_workers=0)
     test_loader = DataLoader(test_set, batch_size=64, shuffle=False, collate_fn=collate_fn, num_workers=0)
 
