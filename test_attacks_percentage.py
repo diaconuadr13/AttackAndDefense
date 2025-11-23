@@ -11,14 +11,12 @@ def evaluate_attacks(num_samples=100): # Set to None to run on all
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Testing on device: {device}")
 
-    # 1. Load Data
+    # Load Data
     test_set = SubsetSC("testing")
-    # Increase batch size for faster iteration (attacks still need 1 by 1 loop or modified batch logic)
-    # For simplicity and safety with our attack implementations, we keep batch_size=1
     test_loader = DataLoader(test_set, batch_size=1, shuffle=True, collate_fn=collate_fn)
     labels_list = get_labels(test_set)
 
-    # 2. Load Model
+    # Load Model
     model = SimpleAudioCNN(n_classes=35).to(device)
     try:
         model.load_state_dict(torch.load("models/baseline_model.pth"))
@@ -50,26 +48,23 @@ def evaluate_attacks(num_samples=100): # Set to None to run on all
         init_pred = model(data).argmax(dim=1).item()
         
         if init_pred != target_idx:
-            continue # Skip already misclassified examples
+            continue 
             
         correctly_classified_original += 1
         
         # --- DeepFool ---
         # DeepFool returns the perturbed image and the prediction
-        _, _, pred_df = deepfool(model, data, device, max_iter=50) # Standard max_iter
+        _, _, pred_df = deepfool(model, data, device, max_iter=50) 
         if pred_df != target_idx:
             deepfool_success += 1
             
         # --- C&W ---
         # C&W returns the perturbed image
-        # Increase max_iter for better success rate (e.g., 100 or 1000)
-        # For speed in this evaluation script, we use 100, but 1000 is better for final results.
-        adv_cw = cw_l2_attack(model, data, device, c=10, learning_rate=0.01, max_iter=100) 
+        adv_cw = cw_l2_attack(model, data, target, device, c=100, learning_rate=0.01, max_iter=1000) 
         pred_cw = model(adv_cw).argmax(dim=1).item()
         if pred_cw != target_idx:
             cw_success += 1
             
-        # Update progress bar description
         df_rate = deepfool_success / correctly_classified_original * 100
         cw_rate = cw_success / correctly_classified_original * 100
         pbar.set_description(f"DF Success: {df_rate:.1f}% | CW Success: {cw_rate:.1f}%")
@@ -81,5 +76,4 @@ def evaluate_attacks(num_samples=100): # Set to None to run on all
     print("="*30)
 
 if __name__ == "__main__":
-    # Run on 200 samples for a good estimate. Set to None for full dataset (takes longer).
     evaluate_attacks(num_samples=200)

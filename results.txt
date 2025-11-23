@@ -9,9 +9,14 @@ Epoch 7: Loss 0.3545, Train Acc 0.8888, Test Acc 0.8437
 Epoch 8: Loss 0.3191, Train Acc 0.9002, Test Acc 0.8314                                                                                                                                                  
 Epoch 9: Loss 0.2948, Train Acc 0.9052, Test Acc 0.8368                                                                                                                                                  
 Epoch 10: Loss 0.2666, Train Acc 0.9146, Test Acc 0.8435                                                                                                                                                 
-Baseline model saved.
 
 Adv Train:
-Epoch 1: Loss 0.2458
-Epoch 2: Loss 0.2092                                                                                                                                                                                     
-Epoch 3: Loss 0.2002  
+Epoch 1: Loss 0.2457
+Epoch 2: Loss 0.1646                                                                                                                                                                 
+Epoch 3: Loss 0.1393                                                                                                                                                                 
+Epoch 4: Loss 0.1239                                                                                                                                                                 
+Epoch 5: Loss 0.1126                                                                                                                                                                 
+Epoch 6: Loss 0.1026                                                                                                                                                                 
+Epoch 7: Loss 0.0949                                                                                                                                                                 
+Epoch 8: Loss 0.0870                                                                                                                                                                 
+Epoch 9: Loss 0.0803                                                                                                                                                                 

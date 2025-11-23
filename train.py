@@ -12,8 +12,6 @@ def train(model, loader, optimizer, criterion, device, epoch=None):
     total_loss = 0
     correct = 0
     
-    # Create a progress bar
-    # leave=False keeps the terminal clean by clearing the bar after each epoch
     desc = f"Epoch {epoch} Training" if epoch else "Training"
     pbar = tqdm(loader, desc=desc, unit="batch", leave=False)
     
@@ -29,7 +27,6 @@ def train(model, loader, optimizer, criterion, device, epoch=None):
         pred = output.argmax(dim=1)
         correct += pred.eq(target).sum().item()
         
-        # Update the progress bar description with the current loss
         pbar.set_postfix(loss=f"{loss.item():.4f}")
         
     return total_loss / len(loader), correct / len(loader.dataset)
@@ -38,7 +35,6 @@ def test(model, loader, criterion, device):
     model.eval()
     correct = 0
     
-    # Optional: Add a simple progress bar for testing too
     with torch.no_grad():
         for data, target in tqdm(loader, desc="Testing", leave=False):
             data, target = data.to(device), target.to(device)
@@ -66,11 +62,9 @@ if __name__ == "__main__":
 
     # Training Loop
     for epoch in range(1, 11):
-        # We pass the epoch number to the train function for the progress bar label
         loss, acc = train(model, train_loader, optimizer, criterion, device, epoch)
         test_acc = test(model, test_loader, criterion, device)
         print(f"Epoch {epoch}: Loss {loss:.4f}, Train Acc {acc:.4f}, Test Acc {test_acc:.4f}")
 
-    # Save the baseline model
     torch.save(model.state_dict(), "models/baseline_model.pth")
     print("Baseline model saved.")

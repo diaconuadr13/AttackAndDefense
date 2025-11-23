@@ -28,16 +28,15 @@ def cw_l2_attack(model, x, labels, device, target_class=None, c=1, kappa=0, max_
             x_adv = x + delta
             output = model(x_adv)
             
-            # 1. L2 distance loss
+            # L2 distance loss
             l2_loss = torch.sum(delta ** 2)
 
-            # 2. f-function (Attack Loss)
+            # f-function (Attack Loss)
             real_logit = torch.gather(output, 1, labels.unsqueeze(1)).squeeze(1)
             tmp_output = output.clone()
             tmp_output.scatter_(1, labels.unsqueeze(1), -float('inf'))
             max_other_logit, _ = tmp_output.max(dim=1)
 
-            # Untargeted Logic: We want max_other > real_logit
             f_loss = torch.clamp(real_logit - max_other_logit + kappa, min=0).sum()
 
             loss = l2_loss + c_current * f_loss

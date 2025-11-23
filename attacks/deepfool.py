@@ -8,7 +8,6 @@ def deepfool(model, x, device, num_classes=35, overshoot=0.02, max_iter=50):
     """
     model.eval()
     
-    # Initialize image as a detached tensor (we don't need gradients for the base image yet)
     image = x.clone().detach().to(device)
     
     # Get the prediction for the original image
@@ -16,7 +15,6 @@ def deepfool(model, x, device, num_classes=35, overshoot=0.02, max_iter=50):
         output = model(image)
     pred = output.argmax(dim=1)
     
-    # If already misclassified, return
     if pred != output.argmax():
         return image, 0, pred
 
@@ -28,21 +26,18 @@ def deepfool(model, x, device, num_classes=35, overshoot=0.02, max_iter=50):
     r_tot = torch.zeros(image.shape).to(device)
 
     loop_i = 0
-    # DETACH here to ensure x_adv is a leaf node
     x_adv = image.clone().detach()
     
     original_label = pred.item()
     current_label = original_label
 
     while current_label == original_label and loop_i < max_iter:
-        # Enable gradients for the current adversarial example
         x_adv.requires_grad = True
         
         # Forward pass
         output = model(x_adv)
         
         # Get gradient of the original class
-        # We need to clear gradients first to be safe
         if x_adv.grad is not None:
             x_adv.grad.zero_()
             
@@ -56,13 +51,11 @@ def deepfool(model, x, device, num_classes=35, overshoot=0.02, max_iter=50):
         for k in range(1, min(num_classes, 10)):
             target_idx = I[0, k].item()
             
-            # Zero gradients for the next backward pass
             x_adv.grad.zero_()
             
             output[0, target_idx].backward(retain_graph=True)
             grad_curr = x_adv.grad.data.clone()
 
-            # Calculate w_k and f_k
             w_k = grad_curr - grad_orig
             f_k = (output[0, target_idx] - output[0, original_label]).data
 
@@ -77,10 +70,9 @@ def deepfool(model, x, device, num_classes=35, overshoot=0.02, max_iter=50):
         r_i = (pert + 1e-4) * w_best / (torch.norm(w_best) + 1e-8)
         r_tot = r_tot + r_i
 
-        # Apply perturbation to the *original* image
+        # Apply perturbation to the original image
         x_adv = image + (1 + overshoot) * r_tot
         
-        # Detach for the next iteration so it becomes a new leaf node
         x_adv = x_adv.detach() 
         
         # Check new prediction

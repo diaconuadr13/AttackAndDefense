@@ -53,30 +53,26 @@ def label_to_index(word, labels):
 def collate_fn(batch):
     tensors, targets = [], []
     transform = torchaudio.transforms.MFCC(sample_rate=16000, n_mfcc=32)
-    labels_list = get_labels(None) # use fixed list
+    labels_list = get_labels(None)
 
     for waveform, _, label, *_ in batch:
-        # 1. Force Mono
+        # Mono
         if waveform.shape[0] > 1:
             waveform = torch.mean(waveform, dim=0, keepdim=True)
         
-        # 2. Force Fixed Length (Pad or Truncate to 16000)
+        # Force Fixed Length (Pad or Truncate to 16000)
         if waveform.shape[1] < FIXED_LENGTH:
-            # Pad
             padding = FIXED_LENGTH - waveform.shape[1]
             waveform = torch.nn.functional.pad(waveform, (0, padding))
         elif waveform.shape[1] > FIXED_LENGTH:
-            # Truncate
             waveform = waveform[:, :FIXED_LENGTH]
 
-        # 3. Transform to MFCC
+        # Transform to MFCC
         tensors += [transform(waveform).squeeze(0).transpose(0, 1)]
         targets += [label]
 
-    # Stack tensors directly (they are now all the same size)
     tensors = torch.stack(tensors)
     
-    # Add channel dimension (B, 1, Time, Freq)
     tensors = tensors.unsqueeze(1) 
     
     targets = torch.stack([label_to_index(t, labels_list) for t in targets])

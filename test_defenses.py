@@ -20,7 +20,6 @@ def test_defenses():
     baseline.eval()
     
     robust = SimpleAudioCNN(n_classes=35).to(device)
-    # Only load if you have run train_adv.py
     try:
         robust.load_state_dict(torch.load("models/robust_model.pth"))
         robust.eval()
@@ -39,24 +38,24 @@ def test_defenses():
         data, target = data.to(device), target.to(device)
         label_name = labels[target.item()]
         
-        # 1. Generate Attack on Baseline
+        # Generate Attack on Baseline
         adv_data, _, _ = deepfool(baseline, data, device)
         
         # Predictions
         pred_clean = labels[baseline(data).argmax(dim=1)]
         pred_adv = labels[baseline(adv_data).argmax(dim=1)]
         
-        if pred_clean != label_name: continue # Skip if baseline was wrong initially
+        if pred_clean != label_name: continue
         
         print(f"\nSample {i}: {label_name}")
         print(f"  [Baseline] Clean: {pred_clean} | Adv: {pred_adv}")
         
-        # 2. Test Feature Squeezing
+        # Test Feature Squeezing
         squeezed_adv = squeezer(adv_data)
         pred_squeeze = labels[baseline(squeezed_adv).argmax(dim=1)]
         print(f"  [Defense: Squeezing] Prediction: {pred_squeeze}")
         
-        # 3. Test Robust Model
+        # Test Robust Model
         if has_robust:
             pred_robust = labels[robust(adv_data).argmax(dim=1)]
             print(f"  [Defense: Adv Train] Prediction: {pred_robust}")

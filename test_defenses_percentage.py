@@ -80,7 +80,7 @@ def evaluate_defenses(num_samples=50):
     # Load Robust Model
     robust = SimpleAudioCNN(n_classes=35).to(device)
     try:
-        robust.load_state_dict(torch.load("models/robust_model.pth"))
+        robust.load_state_dict(torch.load("models/robust_model_2.pth"))
         robust.eval()
         print("Robust model loaded.")
     except:

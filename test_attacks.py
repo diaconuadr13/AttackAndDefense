@@ -33,17 +33,17 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Testing on device: {device}")
 
-    # 1. Load Data and Labels
+    # Load Data and Labels
     test_set = SubsetSC("testing")
     test_loader = DataLoader(test_set, batch_size=1, shuffle=True, collate_fn=collate_fn)
     labels_list = get_labels(test_set)
 
-    # 2. Load Trained Model
+    # Load Trained Model
     model = SimpleAudioCNN(n_classes=35).to(device)
     model.load_state_dict(torch.load("models/baseline_model.pth"))
     model.eval()
 
-    # 3. Run Attack Loop
+    # Run Attack Loop
     print("Running attacks on 5 samples...")
     for i, (data, target) in enumerate(test_loader):
         if i >= 5: break # Stop after 5 examples
@@ -54,7 +54,7 @@ if __name__ == "__main__":
         # Check if model is correct initially
         init_pred = model(data).argmax(dim=1)
         if init_pred != target:
-            continue # Skip samples that are already wrong
+            continue 
 
         print(f"\n--- Sample {i} ({original_label_name}) ---")
 
@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
         # --- C&W Attack ---
         print("Generating C&W attack...")
-        adv_cw = cw_l2_attack(model, data, device, c=20, learning_rate=0.01, max_iter=1000)
+        adv_cw = cw_l2_attack(model, data, target, device, c=100, learning_rate=0.01, max_iter=1000)
         pred_cw = model(adv_cw).argmax(dim=1).item()
         pred_name_cw = labels_list[pred_cw]
         print(f"C&W: {original_label_name} -> {pred_name_cw}")
