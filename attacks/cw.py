@@ -1,49 +1,43 @@
 import torch
 import torch.optim as optim
 
-def cw_l2_attack(model, x, device, target_class=None, c=1, kappa=0, max_iter=1000, learning_rate=0.01):
+def cw_l2_attack(model, x, labels, device, target_class=None, c=1, kappa=0, max_iter=1000, learning_rate=0.01):
     """
-    Carlini & Wagner L2 Attack.
-    Optimizes: min ||x_adv - x||^2 + c * f(x_adv)
+    Carlini & Wagner L2 Attack (Untargeted).
+    Optimizes: min ||delta||^2 + c * f(x + delta)
     """
     model.eval()
     
-    # w is the variable we optimize. x_adv = 0.5 * (tanh(w) + 1)
-    # However, since audio features aren't strictly bounded like pixels [0,1],
-    # we will optimize x_adv directly or assume a bound if your MFCCs are normalized.
-    # For simplicity with MFCCs (unbounded), we optimize delta directly.
+    # x shape: (1, 1, H, W) or (B, 1, H, W)
+    # labels shape: (1,) or (B,)
     
     delta = torch.zeros_like(x, requires_grad=True, device=device)
     optimizer = optim.Adam([delta], lr=learning_rate)
+
+    best_l2 = float('inf')
+    best_adv = x.clone()
+    
+    # Track if we ever found a successful adversarial example
+    found_success = False
 
     for step in range(max_iter):
         x_adv = x + delta
         output = model(x_adv)
         
-        # L2 distance loss
+        # 1. L2 distance loss
         l2_loss = torch.sum(delta ** 2)
 
-        # f-function (Attack Loss)
-        # We want the score of the target class to be higher than the rest
-        # or (untargeted) the score of the correct class to be lower than the runner-up.
+        # 2. f-function (Attack Loss)
+        # Get the logit corresponding to the REAL class
+        real_logit = torch.gather(output, 1, labels.unsqueeze(1)).squeeze(1)
         
-        current_label = output.argmax(dim=1)
-        correct_logit = output[0, current_label]
-        
-        # Find max logit other than correct one
-        # (Simple logic for untargeted attack)
-        sorted_logits, _ = torch.sort(output, dim=1, descending=True)
-        
-        if sorted_logits[0, 0] == correct_logit:
-            # If correct class is top, take the second highest
-            max_other = sorted_logits[0, 1]
-        else:
-            # If correct class is not top, take the highest
-            max_other = sorted_logits[0, 0]
+        # Find the max logit of the OTHER classes
+        tmp_output = output.clone()
+        tmp_output.scatter_(1, labels.unsqueeze(1), -float('inf'))
+        max_other_logit, _ = tmp_output.max(dim=1)
 
-        # For untargeted: we want max_other > correct_logit
-        # f(x) = max(0, correct_logit - max_other + kappa)
-        f_loss = torch.clamp(correct_logit - max_other + kappa, min=0)
+        # Untargeted Logic: We want max_other > real_logit
+        f_loss = torch.clamp(real_logit - max_other_logit + kappa, min=0).sum()
 
         loss = l2_loss + c * f_loss
 
@@ -51,9 +45,17 @@ def cw_l2_attack(model, x, device, target_class=None, c=1, kappa=0, max_iter=100
         loss.backward()
         optimizer.step()
 
-        # Stop if we fooled the model (f_loss is 0) and continue to minimize L2
-        if f_loss.item() == 0 and step > max_iter // 2:
-             # Early stopping can be added here if strict L2 minimization isn't priority
-             pass
+        # Check if this step produced a valid adversarial example
+        # We check the actual prediction to be sure
+        pred = output.argmax(dim=1)
+        is_adv = (pred != labels)
+        
+        if is_adv.item():
+            found_success = True
+            if l2_loss.item() < best_l2:
+                best_l2 = l2_loss.item()
+                best_adv = x_adv.detach().clone()
 
-    return (x + delta).detach()
+    # Return the best successful adversarial example found
+    # If we never fooled the model, return the last attempt (or original x if you prefer)
+    return best_adv if found_success else (x + delta).detach()
