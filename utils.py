@@ -9,8 +9,10 @@ import soundfile as sf
 FIXED_LENGTH = 16000 
 
 class SubsetSC(SPEECHCOMMANDS):
-    def __init__(self, subset: str = None):
-        super().__init__("./data", download=True)
+    def __init__(self, subset: str = None, data_dir: str = "./data"):
+
+        os.makedirs(data_dir, exist_ok=True)
+        super().__init__(data_dir, download=True)
         
         def load_list(filename):
             filepath = os.path.join(self._path, filename)
